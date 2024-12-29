@@ -1,0 +1,223 @@
+<?php
+// Prevent direct access
+if (!defined('ABSPATH')) exit;
+
+// Enqueue necessary scripts and localizations
+add_action('admin_enqueue_scripts', 'feed_the_good_enqueue_scripts');
+function feed_the_good_enqueue_scripts($hook_suffix) {
+    global $typenow;
+    if ('post-new.php' === $hook_suffix && 'gratitude' === $typenow) {
+        wp_enqueue_script('feed-the-good-script', plugin_dir_url(__FILE__) . '/js/dismiss-reminder.js', ['jquery'], false, true);
+        wp_localize_script('feed-the-good-script', 'feedTheGoodAjax', ['ajax_url' => admin_url('admin-ajax.php')]);
+    }
+}
+
+// Display admin notice and check for reset
+add_action('admin_notices', 'feed_the_good_display_notice');
+function feed_the_good_display_notice() {
+    // Check for our custom reset parameter in the URL
+    if (isset($_GET['reset_feed_the_good'])) {
+        delete_option('feed_the_good_dismissed_timestamp'); // Reset the dismissal timestamp
+        wp_redirect(remove_query_arg('reset_feed_the_good')); // Redirect to clean the URL
+        exit;
+    }
+
+    global $pagenow, $typenow;
+    if ('post-new.php' === $pagenow && 'gratitude' === $typenow) {
+        $dismissed_timestamp = get_option('feed_the_good_dismissed_timestamp', 0);
+        
+        if ($dismissed_timestamp === 0 || time() > ($dismissed_timestamp + 86400)) {
+            $messages = [
+                "If you cannot think of something you are grateful for, try this: type one thing that went right today.",
+                "The best time to plant a tree was 20 years ago. The second best time is now. - Timber Hawkeye",
+                "Walk as if you are kissing the Earth with your feet. - Thich Nhat Hanh",
+                "Cultivate the habit of being grateful for every good thing that comes to you, and to give thanks continuously. - Ralph Waldo Emerson",
+                "Reflect on a person who has been kind to you, and how their kindness made you feel.",
+                "Name something small that made you smile today.",
+                "Think about a challenge you faced and overcame. How has this made you stronger?",
+                "What is a comfort food that you're grateful for, and who introduced it to you?",
+                "Consider a skill or talent you have. How has it added value to your life or others?",
+                "Recall a recent time when someone listened to you. How did it impact you?",
+                "Identify a book that changed your perspective. What lesson did you learn from it?",
+                "What is one aspect of your health that you're thankful for?",
+                "Think of a recent experience that brought you joy or satisfaction.",
+                "Who in your life are you grateful for? Consider sending them a message of thanks.",
+                "What's an item you use daily that makes your life easier? Take a moment to appreciate it.",
+                "Recall a moment in nature that took your breath away.",
+                "Think about a piece of art, music, or culture that deeply moved you.",
+                "What's a hard lesson you're thankful to have learned?",
+                "Reflect on a moment of peace or tranquility you recently experienced.",
+                "Is there a technology or tool you're particularly thankful for? How does it enhance your life?",
+                "Consider the last time you laughed heartily. What was so funny?",
+                "Name a tradition you cherish. Why does it mean so much to you?",
+                "Recall a recent compliment you received. How did it make you feel?",
+                "What's something you accomplished recently that you're proud of?",
+                "Think about a time you helped someone. How did it make you feel?",
+                "What is a scent you're grateful for and why?",
+                "Reflect on a favorite place. What makes it special to you?",
+                "Consider a recent day when everything seemed to go right. What happened?",
+                "What's an aspect of your morning routine you're thankful for?",
+                "Think of a recent learning opportunity. What did you learn?",
+                "Recall a time you felt truly listened to. How did it impact your feelings or outcome?",
+                "What is a piece of advice you're thankful to have received?",
+                "Consider a challenge you're facing now. Can you find a silver lining?",
+                "Name a creature or pet that brings you joy.",
+                "Reflect on a gift you received that was thoughtful.",
+                "Think about someone who makes your life better simply by being in it.",
+                "What's a song that uplifts you no matter how many times you hear it?",
+                "Recall a small act of kindness that made a big difference to you.",
+                "What's a memory that always brings a smile to your face?",
+                "Consider the freedom or rights you have and are thankful for.",
+                "Think of a recent moment of clarity or understanding.",
+                "Name something you're looking forward to.",
+                "What's a lesson you learned the hard way but are thankful for?",
+                "Reflect on something beautiful you saw today.",
+                "Consider a habit you've developed that has positively impacted your life.",
+                "Think about a difficult decision that ultimately led to a positive outcome.",
+                "What's a goal you've achieved that you're proud of?",
+                "Recall a simple pleasure that brings you happiness.",
+                "Name an experience that helped you grow.",
+                "Reflect on a dream or goal you're working towards. What progress have you made?",
+                "Consider someone who has forgiven you. How did it change your relationship?",
+                "What's a challenge you've overcome this year?",
+                "Think about a time you felt confident and strong.",
+                "Name an everyday convenience you're thankful for.",
+                "Reflect on a piece of wisdom or quote that inspires you.",
+                "Consider a personal quality or trait you're proud of.",
+                "What's something new you tried recently and enjoyed?",
+                "Recall a time you were able to offer support or comfort to someone else.",
+                "Name a movie or show that left a positive impact on you.",
+                "Think about an unexpected joy you experienced recently.",
+                "What's an example of a time you were resilient?",
+                "Reflect on a friendship that has stood the test of time.",
+                "Consider a recent time when you felt a sense of belonging.",
+                "Think about a goal you're working towards and the progress you've made.",
+                "What's a fear you've faced and overcome?",
+                "Recall a moment when you felt truly at peace.",
+                "Name an act of generosity you witnessed or experienced recently.",
+                "Think about a place that makes you feel safe and why.",
+                "What's a personal challenge you've turned into a strength?",
+                "Reflect on a time you made a meaningful connection with someone.",
+                "Consider a positive change you've made in your life.",
+                "Think about a time you were grateful for something unexpected.",
+                "What's a tradition you started that you're proud of?",
+                "Recall a moment of kindness or generosity that touched you.",
+                "Name a personal achievement that felt especially rewarding.",
+                "Think about a quality in others you're grateful for.",
+                "What's an obstacle you've overcome that's led to personal growth?",
+                "Reflect on a time you felt inspired by someone else's actions.",
+                "Consider a moment when you felt proud of someone you care about.",
+                "Think about a change in perspective that's been beneficial for you.",
+                "What's something in your home you're particularly thankful for?",
+                "Recall a time you felt energized and motivated.",
+                "Name a lesson from history that has influenced you positively.",
+                "Think about a recent act of self-care that improved your mood or health.",
+                "What's a creative endeavor that brings you joy?",
+                "Reflect on a time you were able to forgive, and how it freed you.",
+                "Consider a talent or skill you've developed and are proud of.",
+                "Think about a moment of serendipity or good fortune.",
+                "What's a form of exercise or physical activity you enjoy?",
+                "Recall a personal limitation you've learned to embrace or overcome.",
+                "Name a moment when you felt connected to something larger than yourself.",
+                "Think about a source of motivation or inspiration in your life.",
+                "What's an aspect of your community or environment you're grateful for?",
+                "Reflect on a piece of art or creativity that moved you deeply.",
+                "Consider a challenge you're currently facing and what it's teaching you.",
+                "Think about a time you took a risk and it paid off.",
+                "What's a decision you made that you're thankful for?",
+                "Recall a moment when you were able to let go of something holding you back.",
+                "Name a quality you admire in someone close to you and why.",
+                "Think about a habit that has significantly improved your quality of life.",
+                "What's a moment of unexpected joy or happiness?",
+                "Reflect on a relationship that has been a source of strength or comfort.",
+                "Consider a recent moment when you felt genuine appreciation from someone.",
+                "Think about a way in which you've grown or changed for the better.",
+                "What's an experience that reminded you of the goodness in people?",
+                "Recall a moment when you felt a sense of achievement or success.",
+                "Name a time when you were grateful for something simple.",
+                "Think about a personal value or principle that guides you.",
+                "What's a piece of music that uplifts or moves you?",
+                "Reflect on a time you were able to overcome self-doubt.",
+                "Consider a moment when you felt deeply connected to someone or something.",
+                "Think about a personal challenge you've faced with courage.",
+                "What's an act of kindness you received that you'll never forget?",
+                "Recall a time when you felt truly content with what you have.",
+                "Name a moment when you experienced beauty in an unexpected place.",
+                "Think about a lesson learned from a difficult situation.",
+                "What's an activity that brings you peace or relaxation?",
+                "Reflect on a time you received support or encouragement when you needed it most.",
+                "Consider a moment when you were able to make a positive impact on someone's life.",
+                "Think about a personal goal you've achieved and what it meant to you.",
+                "What's a form of expression (writing, art, music) you're grateful for?",
+                "Recall a time you found strength in a difficult moment.",
+                "Name a recent discovery or realization that brought you joy or insight.",
+                "Think about a moment of clarity or understanding in a complex situation.",
+                "What's a part of your daily life you're thankful for that you once took for granted?",
+                "Reflect on a time you were able to express gratitude to someone.",
+                "Consider a moment when you received kindness from a stranger.",
+                "Think about a place or environment that revitalizes you.",
+                "What's a personal triumph, big or small, that you're proud of?",
+                "Recall a time you were inspired by nature's beauty or power.",
+                "Name a personal characteristic or trait you've cultivated and are thankful for.",
+                "Think about a time you felt genuine happiness for someone else's success.",
+                "What's an opportunity you had that you're grateful for?",
+                "Reflect on a moment when you felt truly alive and present.",
+                "Consider a relationship that has grown stronger over time.",
+                "Think about a personal limitation you've come to accept or overcome.",
+                "What's a childhood memory that brings you joy?",
+                "Recall a moment of unexpected kindness or generosity.",
+                "Name a time when you were able to provide comfort or support to someone in need.",
+                "Think about a personal achievement that gives you a sense of satisfaction.",
+                "What's a change or transition that, while difficult, led to positive growth?",
+                "Reflect on a time you felt connected to your community or a group.",
+                "Consider a moment when you experienced forgiveness, either giving or receiving.",
+                "Think about a difficult truth that, once accepted, brought you peace.",
+                "What's an everyday task or chore that you find surprisingly satisfying?",
+                "Recall a time you were grateful for your own resilience or strength.",
+                "Name a quality or trait in yourself that you've come to appreciate.",
+                "Think about a moment when simplicity brought you profound joy.",
+                "What's an instance where you saw the best in someone unexpectedly?",
+                "Reflect on a personal sacrifice that was ultimately rewarding.",
+                "Consider a time when you were able to let go of anger or resentment.",
+                "Think about a small victory or accomplishment that meant a lot to you.",
+                "What's a habit or practice you've adopted that enhances your well-being?",
+                "Recall a time you experienced growth from stepping outside your comfort zone.",
+                "Name a person who embodies qualities you aspire to, and why you're grateful for their example.",
+                "Think about a moment of realization that changed your perspective for the better.",
+                "What's a lesson from a past mistake that you're thankful to have learned?",
+                "Reflect on a relationship that's taught you something valuable about yourself.",
+                "Consider a moment when you were able to help someone in a meaningful way.",
+                "Think about a time when letting go led to greater happiness or fulfillment.",
+                "What's an aspect of your personality or character that you're proud of?",
+                "Recall a moment when you felt deep gratitude for life's simple pleasures.",
+                "Name a personal challenge that's taught you about your own strength or resilience.",
+                "Think about a time you felt a strong sense of community or belonging.",
+                "What's a piece of advice you're grateful to have followed?",
+                "Reflect on a time when you overcame fear or anxiety to do something important to you.",
+                "Consider a moment of joy or happiness that came from an unexpected source.",
+                "Think about a personal goal or dream you're working towards, and the steps you're taking to achieve it.",
+                "What's an act of self-care or kindness towards yourself that you're thankful for?",
+                "Recall a time when a difficult conversation led to a stronger relationship or understanding.",
+                "Name a quality in others that you're grateful for, and how you can cultivate it in yourself.",
+                "Think about a moment when you found beauty in a place or situation you didn't expect.",
+                "What's a personal insight or understanding you've gained that you're thankful for?",
+                "Reflect on a time when you were able to share your skills or knowledge to help others.",
+                "Consider a moment when you were grateful for something that didn't happen, and the positive outcome that resulted.",
+                "Think about a personal achievement that you initially doubted you could accomplish.",
+                "What's a habit or routine that brings you peace or joy?",
+                "Recall a time you felt a deep connection with someone through a shared experience or understanding.",
+                "Name a recent experience that reminded you of the importance of patience or perseverance.",
+                "Think about a time when you were able to find humor in a challenging situation.",
+                "What's an aspect of your environment (home, nature, city) that you're grateful for?"
+            ];
+            echo '<div class="notice notice-success is-dismissible" id="feed-the-good-notice"><p>' . esc_html($messages[array_rand($messages)]) . '</p></div>';
+        }
+    }
+}
+
+// Handle notice dismissal
+add_action('wp_ajax_feed_the_good_dismiss_notice', 'feed_the_good_dismiss_notice');
+function feed_the_good_dismiss_notice() {
+    update_option('feed_the_good_dismissed_timestamp', time());
+    wp_send_json_success();
+}
